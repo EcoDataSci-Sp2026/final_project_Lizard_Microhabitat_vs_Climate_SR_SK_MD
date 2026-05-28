@@ -141,6 +141,7 @@ anova(lmer_avg)
 anova(lmer_min)
 anova(lmer_max)
 
+<<<<<<< HEAD
 #beginning of sage's code for table
 library(lme4)
 library(lmerTest)
@@ -184,4 +185,7 @@ anova_results_df %>%
             nrow(anova_results_df))
 
 ```
+=======
+
+>>>>>>> 120975114a371fc31317602188e5e667fb42646d
 
