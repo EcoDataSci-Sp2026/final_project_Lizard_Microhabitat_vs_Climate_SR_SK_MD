@@ -18,10 +18,10 @@ required_packages <-function(...) {
   else{message("No packages required installation.")} 
 }
 
-required_packages("tidyverse", "emmeans", "readxl", "lmerTest", "auk", "terrainr", "ggrepel", "sf", "rebird")
+required_packages("tidyverse", "emmeans", "readxl", "lmerTest", "auk", "terrainr", "ggrepel", "sf", "rebird", "kableExtra")
 
 sites <- data.frame(
-  Campus = c("SDSU", "CSUSM", "CSUSB", "CSULB", "Cal Poly SLO", "UCLA", "Whitter","Scripps", "Harvey Mudd", "CLU", "Pepperdine"),
+  Campus = c("SDSU", "CSUSM", "CSUSB", "CSULB", "Cal Poly", "UCLA", "Whittier","Scripps", "HMC", "CLU", "Pepperdine"),
   Latitude  = c(32.77466, 33.12919, 34.18227, 33.78210, 35.30927, 34.07142, 33.97764, 34.10376, 34.10604, 34.22781, 34.04022),
   Longitude = c(-117.07259, -117.15697, -117.31864, -118.11464, -120.66155, -118.44289, -118.02909, -117.71214, -117.70854, -118.87794, -118.70718)
 )
@@ -49,7 +49,11 @@ PRISM_data <- read.csv("PRISM.csv", skip = 10) |>
          Temp_avg = f_to_c(Temp_avg),
          Temp_min = f_to_c(Temp_min),
          Temp_max = f_to_c(Temp_max),
-         Date = ymd(Date))
+         Date = ymd(Date), 
+         Campus = str_replace(Campus, "Cal Poly SLO", "Cal Poly"), 
+         Campus = str_replace(Campus, "Whitter", "Whittier"),
+         Campus = str_replace(Campus, "Harvey Mudd", "HMC")) |> 
+  filter(Campus != "CSUSM")
 ```
 
 ```{r Daily-Average}
@@ -73,7 +77,6 @@ HOBO_data <- HOBO_data |>
 
 
 ```{r graphs}
-
 ggplot(HOBO_data, aes(x = Date, y = Temp_min, color = Campus))+
   facet_wrap(~Site)+
   geom_point()+
@@ -168,11 +171,11 @@ ggplot() +
 
 ```{r ANOVA and table}
 lmer_avg <- lmer(Temp_avg ~ Origin_sp + (1|Campus) + (1|Origin_sp:Campus),
-                 data = Temp_all)
+                 data = Temp_all, REML = F)
 lmer_min <- lmer(Temp_min ~ Origin_sp + (1|Campus) + (1|Origin_sp:Campus),
-                 data = Temp_all)
+                 data = Temp_all, REML = F)
 lmer_max <- lmer(Temp_max ~ Origin_sp + (1|Campus) + (1|Origin_sp:Campus),
-                 data = Temp_all)
+                 data = Temp_all, REML = F)
 
 anova(lmer_avg)
 anova(lmer_min)
@@ -308,6 +311,59 @@ anova_results_df %>%
             nrow(avg_anova_df) + nrow(min_anova_df)) %>%
   pack_rows("Maximum temperature", nrow(avg_anova_df) + nrow(min_anova_df) + 1,
             nrow(anova_results_df))
+
+```
+
+
+```{r}
+McGinnis_threshold <- 35.9
+McGinnis_Pref <- Temp_all |> 
+  mutate(
+    across(c(Temp_avg, Temp_max, Temp_min),
+           ~ if_else(is.na(.), NA_character_,
+                     if_else(. < McGinnis_threshold, "under", "over")),
+           .names = "{.col}_Threshold"),
+    across(c(Temp_avg_Threshold, Temp_max_Threshold, Temp_min_Threshold), ~as.factor(.x)),
+    Month = as.factor(month(Date))) |> 
+  pivot_longer(
+    cols = c(Temp_avg_Threshold, Temp_max_Threshold, Temp_min_Threshold),
+    names_to = "AvgMinMax",
+    values_to = "Threshold")
+
+Aggregated_McGinnis_Max <- McGinnis_Pref |> 
+  filter(!is.na(Threshold), 
+         AvgMinMax == "Temp_max_Threshold")  |> 
+  group_by(Campus, Origin_sp, Month, AvgMinMax) |> 
+  summarise(
+    n_under = sum(Threshold == "under"),
+    n_over  = sum(Threshold == "over"),
+    n_total = n(),
+    n_proportion_exceed = n_over/n_total,
+    .groups = "drop")
+
+```
+
+
+```{r}
+
+lizard_max <- lmer(n_proportion_exceed ~ Origin_sp*Month +
+                   (1|Campus) + (1|Origin_sp:Campus) + (1|Month:Campus),
+                   data = Aggregated_McGinnis_Max, REML = F)
+anova(lizard_max)
+pairs(emmeans(lizard_max, ~ Origin_sp|Month))
+```
+
+```{r}
+# lizard_graph <- Aggregated_McGinnis_Max |> 
+#   group(Campus) |> 
+#   summarize()
+ggplot(Aggregated_McGinnis_Max, 
+       aes(x = Month, y = n_proportion_exceed, color = Origin_sp)) +
+  geom_point() +
+  facet_wrap(~Campus) +
+  theme_bw() +
+  labs(y = "Proportion Exceeding Thermal Tolerance", 
+       x = "Month")
 
 ```
 
