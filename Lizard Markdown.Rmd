@@ -106,7 +106,14 @@ Temp_all <- HOBO_data |>
          Site = str_replace(Site, "On", "Urban"),
          Origin_sp = paste(Site, Origin, sep = " "),
          Origin_sp = str_replace(Origin_sp, "NA ", ""))
-  
+
+Temp_all_long <- Temp_all |> 
+  pivot_longer(cols = c("Temp_avg", "Temp_min", "Temp_max"), 
+               names_to = "Metric", 
+               values_to = "Temperature") |> 
+  mutate(Metric = str_replace(Metric, "Temp_avg", "Average Temperature"),
+         Metric = str_replace(Metric, "Temp_min", "Minimum Temperature"), 
+         Metric = str_replace(Metric, "Temp_max", "Maximum Temperature"))
 ```
 
 
@@ -138,6 +145,17 @@ ggplot(Temp_all, aes(x = Date, y = Temp_max, color = Origin_sp,))+
         y= "Maximum Temperature in Celsius",
         color= "Recording Orgin")+
   theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(Temp_all_long, aes(x = Date, y = Temperature, color = Origin_sp,))+
+  geom_point()+
+    theme_bw()+
+  facet_wrap(~Metric)+
+   labs( title= "Maximum Temperature of Urban Microhabitat",
+        x= "Date", 
+        y= "Maximum Temperature in Celsius",
+        color= "Recording Orgin")+
+  theme(plot.title = element_text(hjust = 0.5))
+
 ```
 
 
@@ -153,8 +171,10 @@ ggplot() +
   geom_spatial_rgb(data = lizard_tiles$USGSTopo, mapping = aes(x, y, r = red, g = green, b = blue)) +
   geom_sf(data = lizard_geo, alpha = .75) +
   labs(title = "Campus Locations with HOBOs and PRISM Climate Data", 
-       caption="Locations of HOBO temperature loggers and requested PRISM climate data. Coordinates of campus locations with HOBOs deployed were entered into PRISM database to receive minimum, maximum, and average daily temperatures") +
-  geom_label_repel(data = sites, aes(label = Campus, x = Longitude, y = Latitude), size = 3, box.padding = .5) +
+       caption="Locations of HOBO temperature loggers and requested PRISM climate data. Coordinates of campus locations with HOBOs deployed were entered into PRISM database to receive minimum, maximum, and average daily temperatures",
+       x = "Longitude",
+       y = "Latitude") +
+  geom_label_repel(data = sites, aes(label = Campus, x = Longitude, y = Latitude), size = 5, box.padding = .5) +
   #ylim(32.5, 35.5) +
   scale_x_continuous(n.breaks = 5) +
   theme_classic() +
@@ -188,6 +208,7 @@ pairs(emmeans(lmer_max,
 
 ```{r}
 #| message: False
+#| warning: False
 
 adjusted_avg <- as.data.frame(emmeans(lmer_avg, ~ Origin_sp)) |> 
   mutate(Origin_sp=fct_relevel(Origin_sp,"Urban Microhabitat", "Non-Urban Microhabitat", "Climate"))
@@ -205,7 +226,7 @@ ggplot()+
                 width = 0.5, linewidth = 1, show.legend = F) +
   geom_point(data = adjusted_avg, 
              aes(x = Origin_sp, y = emmean, color = Origin_sp), size = 2, show.legend = F) +
-  labs(caption = "Model-adjusted estimates for temperature averages compared across data origins",
+  labs(caption = "Model-adjusted estimates for temperature averages",
        y = "Model-Adjusted Temperature", 
        x = "Recording Origin") +
   theme_bw() +
@@ -213,10 +234,10 @@ ggplot()+
     panel.grid = element_blank(), 
     axis.line = element_line(color = "black"),
     axis.title = element_text(size = 18),
-    axis.text = element_text(size = 12),
+    axis.text = element_text(size = 14),
     legend.text = element_text(size = 16),
     legend.title = element_text(size = 16),
-    plot.caption = element_text(size = 13))
+    plot.caption = element_text(size = 18, hjust = .5))
 
 ggplot()+
   geom_jitter(data=Temp_all, alpha=.25, show.legend = F, aes(x=Origin_sp, y=Temp_min, color=Origin_sp)) +
@@ -227,7 +248,7 @@ ggplot()+
                 width = 0.5, linewidth = 1, show.legend = F) +
   geom_point(data = adjusted_min, 
              aes(x = Origin_sp, y = emmean, color = Origin_sp), size = 2, show.legend = F) +
-  labs(caption = "Model-adjusted estimates for temperature minimums compared across recording origins",
+  labs(caption = "Model-adjusted estimates for temperature minimums",
        y = "Model-Adjusted Temperature", 
        x = "Recording Origin") +
   theme_bw() +
@@ -235,10 +256,10 @@ ggplot()+
     panel.grid = element_blank(), 
     axis.line = element_line(color = "black"),
     axis.title = element_text(size = 18),
-    axis.text = element_text(size = 12),
+    axis.text = element_text(size = 14),
     legend.text = element_text(size = 16),
     legend.title = element_text(size = 16),
-    plot.caption = element_text(size = 13))
+    plot.caption = element_text(size = 18, hjust = .5))
 
 
 ggplot()+
@@ -250,7 +271,7 @@ ggplot()+
                 width = 0.5, linewidth = 1, show.legend = F) +
   geom_point(data = adjusted_max, 
              aes(x = Origin_sp, y = emmean, color = Origin_sp), size = 2, show.legend = F) +
-  labs(caption = "Model-adjusted estimates for temperature maximums compared across data origins",
+  labs(caption = "Model-adjusted estimates for temperature maximums",
        y = "Model-Adjusted Temperature", 
        x = "Recording Origin") +
   ylim(21.5, 31) +
@@ -259,10 +280,10 @@ ggplot()+
     panel.grid = element_blank(), 
     axis.line = element_line(color = "black"),
     axis.title = element_text(size = 18),
-    axis.text = element_text(size = 12),
+    axis.text = element_text(size = 14),
     legend.text = element_text(size = 16),
     legend.title = element_text(size = 16),
-    plot.caption = element_text(size = 12)) +
+    plot.caption = element_text(size = 18, hjust = .5)) +
   annotate("text", x = 1, y = 31, label = "A", size = 5) +
   annotate("text", x = 2, y = 29.5, label = "A", size = 5) +
   annotate("text", x = 3, y = 26, label = "B", size = 5)
@@ -285,12 +306,11 @@ anova_results_df <- rbind(avg_anova_df, min_anova_df, max_anova_df)
 
 anova_results_df <- cbind(
   Term = rownames(anova_results_df),
-  anova_results_df
-)
+  anova_results_df)
 
 rownames(anova_results_df) <- NULL
 
-anova_results_df %>%
+anova_results_df |>
   kable("html", 
         digits = 3,
           col.names = c(
@@ -301,14 +321,14 @@ anova_results_df %>%
       "Den DF",
       "F - value",
       "P - value"
-    )) %>%
+    )) |>
   kable_styling(
     bootstrap_options = "striped",
     full_width = FALSE
-  ) %>%
-  pack_rows("Average temperature", 1, nrow(avg_anova_df)) %>%
+  ) |>
+  pack_rows("Average temperature", 1, nrow(avg_anova_df)) |>
   pack_rows("Minimum temperature", nrow(avg_anova_df) + 1,
-            nrow(avg_anova_df) + nrow(min_anova_df)) %>%
+            nrow(avg_anova_df) + nrow(min_anova_df)) |>
   pack_rows("Maximum temperature", nrow(avg_anova_df) + nrow(min_anova_df) + 1,
             nrow(anova_results_df))
 
@@ -348,10 +368,28 @@ Aggregated_McGinnis_Max <- McGinnis_Pref |>
 
 lizard_max <- lmer(n_proportion_exceed ~ Origin_sp*Month +
                    (1|Campus) + (1|Origin_sp:Campus) + (1|Month:Campus),
-                   data = Aggregated_McGinnis_Max, REML = F)
+                   data = Aggregated_McGinnis_Max, REML = F, 
+                   control = lmerControl(optimizer = "bobyqa"))
 anova(lizard_max)
-pairs(emmeans(lizard_max, ~ Origin_sp|Month))
+lizard_data <- pairs(emmeans(lizard_max, ~ Origin_sp|Month))
+
+kable(lizard_data, "html", 
+        digits = 3) |>
+  kable_styling(
+    bootstrap_options = "striped",
+    full_width = FALSE
+  )|>
+  pack_rows("March", 1, 3) |>
+  pack_rows("April", 4, 6) |>
+  pack_rows("May", 7, 9) |>
+  pack_rows("June", 10, 12) |>
+  pack_rows("July", 13, 15) |>
+  pack_rows("August", 16, 18) |>
+  pack_rows("September", 19, 21) 
+
 ```
+
+
 
 ```{r}
 # lizard_graph <- Aggregated_McGinnis_Max |> 
@@ -364,6 +402,34 @@ ggplot(Aggregated_McGinnis_Max,
   theme_bw() +
   labs(y = "Proportion Exceeding Thermal Tolerance", 
        x = "Month")
+
+ggplot(Aggregated_McGinnis_Max, 
+       aes(x = Month, y = n_proportion_exceed, color = Origin_sp, group = Origin_sp)) +
+  geom_smooth(se = F) +
+  theme_bw() +
+  labs(y = "Proportion Exceeding Thermal Tolerance", 
+       x = "Month")
+
+lizard_emmean <- data.frame(emmeans(lizard_max, ~ Origin_sp|Month))
+
+ggplot(lizard_emmean, 
+       aes(x = Month, y = emmean, color = Origin_sp, group = Origin_sp)) +
+  geom_smooth(se = F) +
+  geom_ribbon(aes(ymin = lower.CL, ymax = upper.CL, fill = Origin_sp),
+    alpha = 0.18, color = NA, show.legend = FALSE) +
+  theme_bw() +
+  labs(y = "Proportion Exceeding Thermal Tolerance", 
+       x = "Month",
+       color = "Recording Origin"
+       )+
+  theme(
+    panel.grid = element_blank(), 
+    axis.line = element_line(color = "black"),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 14),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 16),
+    plot.caption = element_text(size = 18, hjust = .5))
 
 ```
 
