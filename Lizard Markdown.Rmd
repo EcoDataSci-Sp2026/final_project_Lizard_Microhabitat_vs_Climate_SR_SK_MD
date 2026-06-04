@@ -291,13 +291,14 @@ anova_results_df <- rbind(avg_anova_df, min_anova_df, max_anova_df)
 anova_results_df <- cbind(
   Term = rownames(anova_results_df),
   anova_results_df)
-
+#create a new column called "term"
 rownames(anova_results_df) <- NULL
-
+#remove rownames so table has clean numbering 
+#create a html table from combined ANOVA data frame 
 anova_results_df |>
   kable("html", 
         digits = 3,
-          col.names = c(
+          col.names = c( #rename the column headers in the displayed table
       "Term",
       "Sum Sq",
       "Mean Sq",
@@ -306,13 +307,17 @@ anova_results_df |>
       "F - value",
       "P - value"
     )) |>
+  #add styling to the HTML table 
   kable_styling(
     bootstrap_options = "striped",
     full_width = FALSE
   ) |>
+  #add a group row label for the average temperature ANOVA results 
   pack_rows("Average temperature", 1, nrow(avg_anova_df)) |>
+  #add a grouped row label for the minimum temperature ANOVA results
   pack_rows("Minimum temperature", nrow(avg_anova_df) + 1,
             nrow(avg_anova_df) + nrow(min_anova_df)) |>
+  #add a grouped row label for the max temperature ANOVA results 
   pack_rows("Maximum temperature", nrow(avg_anova_df) + nrow(min_anova_df) + 1,
             nrow(anova_results_df))
 
@@ -396,6 +401,7 @@ ggplot(Aggregated_McGinnis_Max,
   theme_bw() +
   labs(y = "Proportion Exceeding Thermal Tolerance", 
        x = "Month")
+#make a map with temperature threshhold of lizards from McGinnis paper, with a facet
 
 ggplot(Aggregated_McGinnis_Max, 
        aes(x = Month, y = n_proportion_exceed, color = Origin_sp, group = Origin_sp)) +
@@ -403,7 +409,7 @@ ggplot(Aggregated_McGinnis_Max,
   theme_bw() +
   labs(y = "Proportion Exceeding Thermal Tolerance", 
        x = "Month")
-
+#make a map with temperature threshhold of lizards from McGinnis paper.
 lizard_emmean <- data.frame(emmeans(lizard_max, ~ Origin_sp|Month))
 
 ggplot(lizard_emmean, 
@@ -424,7 +430,7 @@ ggplot(lizard_emmean,
     legend.text = element_text(size = 16),
     legend.title = element_text(size = 16),
     plot.caption = element_text(size = 18, hjust = .5))
-
+#post hoc test map that shows the specified factors, of the thermal tolerance. 
 ```
 
 
