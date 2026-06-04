@@ -108,11 +108,8 @@ Temp_all <- HOBO_data |>
   mutate(Site = str_replace(Site, "Off", "Non-Urban"),
          Site = str_replace(Site, "On", "Urban"),
          Origin_sp = paste(Site, Origin, sep = " "),
-         Origin_sp = str_replace(Origin_sp, "NA ", ""),
-         Month = as.factor(month(Date))) |> 
-  filter(Month != 9 ) 
-  ##Join prism data into hobo dataframe.
-
+         Origin_sp = str_replace(Origin_sp, "NA ", ""))
+##Join prism data into hobo dataframe.
 Temp_all_long <- Temp_all |> 
   pivot_longer(cols = c("Temp_avg", "Temp_min", "Temp_max"), 
                names_to = "Metric", 
@@ -125,7 +122,6 @@ Temp_all_long <- Temp_all |>
 
 
 ```{r}
-#| warning: False
 ggplot(Temp_all, aes(x = Date, y = Temp_min, color = Origin_sp,
                      ))+
   geom_point()+
@@ -200,7 +196,6 @@ ggplot() +
 
 
 ```{r ANOVA and table}
-
 lmer_avg <- lmer(Temp_avg ~ Origin_sp + (1|Campus) + (1|Origin_sp:Campus),
                  data = Temp_all, REML = F)
 lmer_min <- lmer(Temp_min ~ Origin_sp + (1|Campus) + (1|Origin_sp:Campus),
@@ -228,7 +223,28 @@ adjusted_min <- as.data.frame(emmeans(lmer_min, ~ Origin_sp)) |>
   mutate(Origin_sp=fct_relevel(Origin_sp,"Urban Microhabitat", "Non-Urban Microhabitat", "Climate")) 
 adjusted_max <- as.data.frame(emmeans(lmer_max, ~ Origin_sp)) |> 
   mutate(Origin_sp=fct_relevel(Origin_sp,"Urban Microhabitat", "Non-Urban Microhabitat", "Climate"))
-
+#model-adjusted values for average
+ggplot()+
+  geom_jitter(data=Temp_all, alpha=.25, show.legend = F, aes(x=Origin_sp, y=Temp_avg, color=Origin_sp)) +
+  geom_line(data = adjusted_avg, 
+            aes(x = Origin_sp, y = emmean, color = Origin_sp), show.legend = F) +
+  geom_errorbar(data = adjusted_avg, 
+                aes(x = Origin_sp, ymin = asymp.LCL, ymax = asymp.UCL, color = Origin_sp), 
+                width = 0.5, linewidth = 1, show.legend = F) +
+  geom_point(data = adjusted_avg, 
+             aes(x = Origin_sp, y = emmean, color = Origin_sp), size = 2, show.legend = F) +
+  labs(caption = "Model-adjusted estimates for temperature averages",
+       y = "Model-Adjusted Temperature", 
+       x = "Recording Origin") +
+  theme_bw() +
+  theme(
+    panel.grid = element_blank(), 
+    axis.line = element_line(color = "black"),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 14),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 16),
+    plot.caption = element_text(size = 18, hjust = .5))
 #model-adjusted values for minimum values
 ggplot()+
   geom_jitter(data=Temp_all, alpha=.25, show.legend = F, aes(x=Origin_sp, y=Temp_min, color=Origin_sp)) +
@@ -282,7 +298,6 @@ ggplot()+
 ```
 
 ```{r}
-#| message: False
 #beginning of sage's code for table
 library(lme4)
 library(lmerTest)
@@ -329,17 +344,7 @@ anova_results_df |>
   #add a grouped row label for the max temperature ANOVA results 
   pack_rows("Maximum temperature", nrow(avg_anova_df) + nrow(min_anova_df) + 1,
             nrow(anova_results_df))
-
-post_hoc_max <- data.frame(pairs(emmeans(lmer_max, ~ Origin_sp)))
-
-post_hoc_max |> 
-  kable("html", 
-        digits = 3) |>
-  kable_styling(
-    bootstrap_options = "striped",
-    full_width = FALSE
-  )
-
+   
 ```
 
 
