@@ -80,6 +80,7 @@ HOBO_data <- HOBO_data |>
 
 
 ```{r graphs}
+#| warning: False
 ggplot(HOBO_data, aes(x = Date, y = Temp_min, color = Campus))+
   facet_wrap(~Site)+
   geom_point()+
