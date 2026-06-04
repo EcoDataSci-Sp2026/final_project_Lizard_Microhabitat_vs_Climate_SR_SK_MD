@@ -108,7 +108,9 @@ Temp_all <- HOBO_data |>
   mutate(Site = str_replace(Site, "Off", "Non-Urban"),
          Site = str_replace(Site, "On", "Urban"),
          Origin_sp = paste(Site, Origin, sep = " "),
-         Origin_sp = str_replace(Origin_sp, "NA ", ""))
+         Origin_sp = str_replace(Origin_sp, "NA ", ""), 
+         Month = as.factor(month(Date))) |> 
+  filter(Month != 9 ) 
 ##Join prism data into hobo dataframe.
 Temp_all_long <- Temp_all |> 
   pivot_longer(cols = c("Temp_avg", "Temp_min", "Temp_max"), 
@@ -122,6 +124,7 @@ Temp_all_long <- Temp_all |>
 
 
 ```{r}
+#| warning: False
 ggplot(Temp_all, aes(x = Date, y = Temp_min, color = Origin_sp,
                      ))+
   geom_point()+
@@ -196,6 +199,7 @@ ggplot() +
 
 
 ```{r ANOVA and table}
+#| message: False
 lmer_avg <- lmer(Temp_avg ~ Origin_sp + (1|Campus) + (1|Origin_sp:Campus),
                  data = Temp_all, REML = F)
 lmer_min <- lmer(Temp_min ~ Origin_sp + (1|Campus) + (1|Origin_sp:Campus),
@@ -298,6 +302,7 @@ ggplot()+
 ```
 
 ```{r}
+#| message: False
 #beginning of sage's code for table
 library(lme4)
 library(lmerTest)
@@ -345,6 +350,16 @@ anova_results_df |>
   pack_rows("Maximum temperature", nrow(avg_anova_df) + nrow(min_anova_df) + 1,
             nrow(anova_results_df))
    
+post_hoc_max <- data.frame(pairs(emmeans(lmer_max, ~ Origin_sp)))
+
+post_hoc_max |> 
+  kable("html", 
+        digits = 3) |>
+  kable_styling(
+    bootstrap_options = "striped",
+    full_width = FALSE
+  )
+
 ```
 
 
@@ -397,8 +412,7 @@ kable(lizard_data, "html",
   pack_rows("May", 7, 9) |>
   pack_rows("June", 10, 12) |>
   pack_rows("July", 13, 15) |>
-  pack_rows("August", 16, 18) |>
-  pack_rows("September", 19, 21) 
+  pack_rows("August", 16, 18) 
 
 ```
 
