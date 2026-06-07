@@ -5,6 +5,11 @@ date: "2026-05-14"
 output: html_document
 ---
 
+
+# [Set up]{.underline}
+
+## [packages]{.underline}
+
 ```{r setup}
 #The following code was not written by the group. Credit goes to Scott
 # Download these packages. 
@@ -19,7 +24,7 @@ required_packages <-function(...) {
   else{message("No packages required installation.")} 
 }
 
-required_packages("tidyverse", "emmeans", "readxl", "lmerTest", "auk", "terrainr", "ggrepel", "sf", "rebird", "kableExtra")
+required_packages("tidyverse", "emmeans", "readxl", "lme4", "lmerTest", "auk", "terrainr", "ggrepel", "sf", "rebird", "kableExtra", "broom.mixed")
 
 sites <- data.frame(
   Campus = c("SDSU", "CSUSM", "CSUSB", "CSULB", "Cal Poly", "UCLA", "Whittier","Scripps", "HMC", "CLU", "Pepperdine"),
@@ -29,7 +34,9 @@ sites <- data.frame(
 #This  chunk of code is to put all of the different study sites into a data frame using their latitude and longitude. Download the required packages. Code in the begining is from Scott Apleby. 
 ```
 
-![Western Fence Lizzard (*Sceloporus occidentalis*) overlooking his kingdom. Photo Credit:James Maughn, LA Times](western_fence_liz.jpeg){width="300"} 
+![Western Fence Lizard (*Sceloporus occidentalis*) overlooking his kingdom. Photo Credit:James Maughn, LA Times](western_fence_liz.jpg){width="300"}
+
+## [Function creation]{.underline}
 
 ```{r temp-conversion}
 f_to_c <- function(Far) {
@@ -38,6 +45,8 @@ f_to_c <- function(Far) {
 }
 #function made. Converting fahrenheit to celsius. Used in our data frame to convert when needed. 
 ```
+
+## [Data upload]{.underline}
 
 ```{r Data}
 HOBO_data_half_hour <- read_xlsx("Ambient_Data.xlsx") |> 
@@ -59,6 +68,8 @@ PRISM_data <- read.csv("PRISM.csv", skip = 10) |>  #read in csv file, assign col
   filter(Campus != "CSUSM")
 ```
 
+## [Adjusting temporal scale]{.underline}
+
 ```{r Daily-Average}
 HOBO_data <- HOBO_data_half_hour |> 
   group_by(MonthDayYear, Site, Campus) |> 
@@ -78,6 +89,33 @@ HOBO_data <- HOBO_data |>
 #combine hobo data info into main hobo data frame. 
 ```
 
+## [Joining datasets]{.underline}
+
+```{r join}
+Temp_all <- HOBO_data |> 
+  full_join(PRISM_data, 
+            by = c("Date", "Campus", "Origin", "Temp_avg", "Temp_min", "Temp_max", "Latitude", "Longitude")) |> 
+  mutate(Site = str_replace(Site, "Off", "Non-Urban"),
+         Site = str_replace(Site, "On", "Urban"),
+         Origin_sp = paste(Site, Origin, sep = " "),
+         Origin_sp = str_replace(Origin_sp, "NA ", ""), 
+         Month = as.factor(month(Date))) |> 
+  filter(Month != 9 ) 
+##Join prism data into hobo dataframe.
+Temp_all_long <- Temp_all |> 
+  pivot_longer(cols = c("Temp_avg", "Temp_min", "Temp_max"), 
+               names_to = "Metric", 
+               values_to = "Temperature") |> 
+  mutate(Metric = str_replace(Metric, "Temp_avg", "Average Temperature"),
+         Metric = str_replace(Metric, "Temp_min", "Minimum Temperature"), 
+         Metric = str_replace(Metric, "Temp_max", "Maximum Temperature"))
+#Pivot the data into a single column to make a figure in the next step. 
+```
+
+
+# [Visualizations]{.underline}
+
+## [graphing HOBO data]{.underline}
 
 ```{r graphs}
 #| warning: False
@@ -101,28 +139,7 @@ ggplot(HOBO_data, aes(x = Date, y = Temp_max, color = Campus))+
 #make two graphs of min and max temperature.Group by site of hobo data. 
 ```
 
-
-```{r join}
-Temp_all <- HOBO_data |> 
-  full_join(PRISM_data, 
-            by = c("Date", "Campus", "Origin", "Temp_avg", "Temp_min", "Temp_max", "Latitude", "Longitude")) |> 
-  mutate(Site = str_replace(Site, "Off", "Non-Urban"),
-         Site = str_replace(Site, "On", "Urban"),
-         Origin_sp = paste(Site, Origin, sep = " "),
-         Origin_sp = str_replace(Origin_sp, "NA ", ""), 
-         Month = as.factor(month(Date))) |> 
-  filter(Month != 9 ) 
-##Join prism data into hobo dataframe.
-Temp_all_long <- Temp_all |> 
-  pivot_longer(cols = c("Temp_avg", "Temp_min", "Temp_max"), 
-               names_to = "Metric", 
-               values_to = "Temperature") |> 
-  mutate(Metric = str_replace(Metric, "Temp_avg", "Average Temperature"),
-         Metric = str_replace(Metric, "Temp_min", "Minimum Temperature"), 
-         Metric = str_replace(Metric, "Temp_max", "Maximum Temperature"))
-#Pivot the data into a single column to make a figure in the next step. 
-```
-
+## [Temperature comparison graphs]{.underline}
 
 ```{r}
 #| warning: False
@@ -167,6 +184,7 @@ ggplot(Temp_all_long, aes(x = Date, y = Temperature, color = Origin_sp,))+
 #plot max temp by date for both hobo and prism data with a facet for metric.
 ```
 
+## [Campus locations]{.underline}
 
 ```{r sages-attempt-at-mapping}
 
@@ -197,7 +215,9 @@ ggplot() +
 #mapping site locations. 
 ```
 
+# [Analysis]{.underline}
 
+## [Temperature ANOVAs]{.underline}
 
 ```{r ANOVA and table}
 #| message: False
@@ -217,6 +237,7 @@ pairs(emmeans(lmer_max,
 #Linear mixed effects models 
 ```
 
+## [Model-adjusted graphs]{.underline}
 
 ```{r}
 #| message: False
@@ -302,14 +323,11 @@ ggplot()+
 
 ```
 
+## [Tables]{.underline}
+
 ```{r}
 #| message: False
 #beginning of sage's code for table
-library(lme4)
-library(lmerTest)
-library(broom.mixed)
-library(dplyr)
-library(kableExtra)
 #creating data frames from the anova models
 avg_anova_df <- data.frame(anova(lmer_avg))
 min_anova_df <- data.frame(anova(lmer_min))
@@ -363,6 +381,7 @@ post_hoc_max |>
 
 ```
 
+## [Lizard data]{.underline}
 
 ```{r}
 McGinnis_threshold <- 35.9 #establishing the threshold
@@ -392,6 +411,7 @@ Aggregated_McGinnis_Max <- McGinnis_Pref |>
 
 ```
 
+## [Lizard model & table]{.underline}
 
 ```{r}
 #lizard threshold anova
@@ -417,24 +437,16 @@ kable(lizard_data, "html",
 
 ```
 
-
+## [lizard graphs]{.underline}
 
 ```{r}
-# lizard_graph <- Aggregated_McGinnis_Max |> 
-#   group(Campus) |> 
-#   summarize()
-ggplot(Aggregated_McGinnis_Max, 
-       aes(x = Month, y = n_proportion_exceed, color = Origin_sp)) +
-  geom_point() +
-  facet_wrap(~Campus) +
-  theme_bw() +
-  labs(y = "Proportion Exceeding Thermal Tolerance", 
-       x = "Month")
-#make a map with temperature threshhold of lizards from McGinnis paper, with a facet
+#| message: False
+#make a graph with temperature threshhold of lizards from McGinnis paper, with a facet
 
 ggplot(Aggregated_McGinnis_Max, 
        aes(x = Month, y = n_proportion_exceed, color = Origin_sp, group = Origin_sp)) +
-  geom_smooth(se = F) +
+  facet_wrap(~Campus)+
+  geom_point() +
   theme_bw() +
   labs(y = "Proportion Exceeding Thermal Tolerance", 
        x = "Month")
@@ -461,5 +473,3 @@ ggplot(lizard_emmean,
     plot.caption = element_text(size = 18, hjust = .5))
 #post hoc test map that shows the specified factors, of the thermal tolerance. 
 ```
-
-
