@@ -446,6 +446,7 @@ kable(lizard_data, #"html",
 
 ```{r}
 #| message: False
+lizard_emmean <- data.frame(emmeans(lizard_max, ~ Origin_sp|Month))
 
 ggplot(lizard_emmean, 
        aes(x = Month, y = emmean, color = Origin_sp, group = Origin_sp)) +
@@ -478,6 +479,5 @@ ggplot(Aggregated_McGinnis_Max,
   labs(y = "Proportion Exceeding Thermal Tolerance", 
        x = "Month")
 #make a map with temperature threshhold of lizards from McGinnis paper.
-lizard_emmean <- data.frame(emmeans(lizard_max, ~ Origin_sp|Month))
 
 ```
