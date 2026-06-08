@@ -2,7 +2,7 @@
 title: "Lizard Markdown"
 author: "Stella Raymond, Sage Kruleski, and Monique DeMalteris "
 date: "2026-05-14"
-output: html_document
+output: pdf_document
 ---
 
 
@@ -206,7 +206,7 @@ ggplot() +
        caption="Locations of HOBO temperature loggers and requested PRISM climate data. Coordinates of campus locations with HOBOs deployed were entered into PRISM database to receive minimum, maximum, and average daily temperatures",
        x = "Longitude",
        y = "Latitude") +
-  geom_label_repel(data = sites, aes(label = Campus, x = Longitude, y = Latitude), size = 5, box.padding = .5) +
+  geom_label_repel(data = sites, aes(label = Campus, x = Longitude, y = Latitude), size = 3, box.padding = .5) +
   #ylim(32.5, 35.5) +
   scale_x_continuous(n.breaks = 5) +
   theme_classic() +
@@ -349,7 +349,7 @@ rownames(anova_results_df) <- NULL
 #remove rownames so table has clean numbering 
 #create a html table from combined ANOVA data frame 
 anova_results_df |>
-  kable("html", 
+  kable(#"pdf", 
         digits = 3,
           col.names = c( #rename the column headers in the displayed table
       "Term",
@@ -377,7 +377,7 @@ anova_results_df |>
 post_hoc_max <- data.frame(pairs(emmeans(lmer_max, ~ Origin_sp)))
 
 post_hoc_max |> 
-  kable("html", 
+  kable(#"pdf", 
         digits = 3) |>
   kable_styling(
     bootstrap_options = "striped",
@@ -427,7 +427,7 @@ lizard_max <- lmer(n_proportion_exceed ~ Origin_sp*Month +
 anova(lizard_max)
 lizard_data <- pairs(emmeans(lizard_max, ~ Origin_sp|Month)) #grabbing the post hoc to reformat it into a nice presentable graph
 
-kable(lizard_data, "html",
+kable(lizard_data, #"html",
         digits = 3) |> 
   kable_styling(
     bootstrap_options = "striped", #make it pretty
@@ -446,17 +446,6 @@ kable(lizard_data, "html",
 
 ```{r}
 #| message: False
-#make a graph with temperature threshhold of lizards from McGinnis paper, with a facet
-
-ggplot(Aggregated_McGinnis_Max, 
-       aes(x = Month, y = n_proportion_exceed, color = Origin_sp, group = Origin_sp)) +
-  facet_wrap(~Campus)+
-  geom_point() +
-  theme_bw() +
-  labs(y = "Proportion Exceeding Thermal Tolerance", 
-       x = "Month")
-#make a map with temperature threshhold of lizards from McGinnis paper.
-lizard_emmean <- data.frame(emmeans(lizard_max, ~ Origin_sp|Month))
 
 ggplot(lizard_emmean, 
        aes(x = Month, y = emmean, color = Origin_sp, group = Origin_sp)) +
@@ -477,4 +466,18 @@ ggplot(lizard_emmean,
     legend.title = element_text(size = 16),
     plot.caption = element_text(size = 18, hjust = .5))
 #post hoc test map that shows the specified factors, of the thermal tolerance. 
+
+
+#make a graph with temperature threshhold of lizards from McGinnis paper, with a facet
+#not as relevant because we aren't focusing on campus, it is just a replicate
+ggplot(Aggregated_McGinnis_Max, 
+       aes(x = Month, y = n_proportion_exceed, color = Origin_sp, group = Origin_sp)) +
+  facet_wrap(~Campus)+
+  geom_point() +
+  theme_bw() +
+  labs(y = "Proportion Exceeding Thermal Tolerance", 
+       x = "Month")
+#make a map with temperature threshhold of lizards from McGinnis paper.
+lizard_emmean <- data.frame(emmeans(lizard_max, ~ Origin_sp|Month))
+
 ```
