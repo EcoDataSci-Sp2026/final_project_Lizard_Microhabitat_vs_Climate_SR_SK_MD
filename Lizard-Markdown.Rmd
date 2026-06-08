@@ -176,11 +176,16 @@ ggplot(Temp_all_long, aes(x = Date, y = Temperature, color = Origin_sp,))+
   geom_point()+
     theme_bw()+
   facet_wrap(~Metric)+
-   labs( title= "Maximum Temperature of Urban Microhabitat",
+   labs(
         x= "Date", 
-        y= "Maximum Temperature in Celsius",
+        y= "Temperature in Celsius",
         color= "Recording Orgin")+
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 12),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        plot.caption = element_text(size = 13))
 #plot max temp by date for both hobo and prism data with a facet for metric.
 ```
 
